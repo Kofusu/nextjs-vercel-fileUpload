@@ -1,40 +1,46 @@
-"use client"
+'use client';
 
-import axios from "axios";
-import { ChangeEvent, FormEvent, useState } from "react";
+import type { PutBlobResult } from '@vercel/blob';
+import { useState, useRef } from 'react';
 
-export default function Home() {
-  const [fileState, setFileState] = useState<File | string>()
-
-  const changeFileHandler = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return
-    setFileState(e.target.files[0])
-
-
-  }
-
-  const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const config = {
-      headers: {
-        'content-type': 'multipart/form-data',
-      },
-    };
-    
-    const formData = new FormData()
-    formData.append("fileUpload", fileState as string)
-
-    await axios.post('/api', formData, config).then((response) => {
-      console.log(response.data);
-    });
-  }
-
+export default function AvatarUploadPage() {
+  const inputFileRef = useRef<HTMLInputElement>(null);
+  const [blob, setBlob] = useState<PutBlobResult | null>(null);
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <form onSubmit={submitHandler}>
-        <input onChange={changeFileHandler} name="fileUpload" type="file" />
-        <button type="submit">Submit</button>
+    <>
+      <h1>Upload Your Avatar</h1>
+
+      <form
+        onSubmit={async (event) => {
+          event.preventDefault();
+
+          if (!inputFileRef.current?.files) {
+            throw new Error("No file selected");
+          }
+
+          const file = inputFileRef.current.files[0];
+
+          const response = await fetch(
+            `/api?filename=${file.name}`,
+            {
+              method: 'POST',
+              body: file,
+            },
+          );
+
+          const newBlob = (await response.json()) as PutBlobResult;
+
+          setBlob(newBlob);
+        }}
+      >
+        <input name="file" ref={inputFileRef} type="file" required />
+        <button type="submit">Upload</button>
       </form>
-    </main>
+      {blob && (
+        <div>
+          Blob url: <a href={blob.url}>{blob.url}</a>
+        </div>
+      )}
+    </>
   );
 }

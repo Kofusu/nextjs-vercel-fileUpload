@@ -1,25 +1,19 @@
-import { writeFile } from "fs/promises";
-import { NextRequest, NextResponse } from "next/server";
-import { join } from "path";
+import { put } from '@vercel/blob';
+import { NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest, res: NextResponse) {
-  console.log(req.body);
-  
-  return NextResponse.json({ data: "Perkele" }, {status: 200})
-}
+export async function POST(request: Request): Promise<NextResponse> {
+  const { searchParams } = new URL(request.url);
+  const filename = searchParams.get('filename') as string;
 
-export async function POST(req: NextRequest, res: NextResponse) {
-  const body = await req.formData()
-  const fileUpload: File = body.get('fileUpload') as File
-  console.log(fileUpload);
+  // ⚠️ The below code is for App Router Route Handlers only
+  const blob = await put(filename, request.body, {
+    access: 'public',
+  });
 
-  const bytes = await fileUpload.arrayBuffer()
-  const buffer = Buffer.from(bytes)
+  // Here's the code for Pages API Routes:
+  // const blob = await put(filename, request, {
+  //   access: 'public',
+  // });
 
-  const path = join(process.cwd(), "public", fileUpload.name)
-  await writeFile(path, buffer)
-  console.log(`uploaded on ${path}`);
-  
-
-  return NextResponse.json({ data: "Perkele" }, {status: 200})
+  return NextResponse.json(blob);
 }
